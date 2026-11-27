@@ -1,4 +1,4 @@
-name: Android APK
+name: Android APKs
 
 on:
   push:
@@ -23,12 +23,11 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Build debug APK
-        id: build
+      - name: Build both Android apps
         shell: bash
         run: |
           set +e
-          gradle assembleDebug --stacktrace --warning-mode all > build.log 2>&1
+          gradle :app:assembleDebug :music:assembleDebug --stacktrace --warning-mode all > build.log 2>&1
           result=$?
           tail -n 180 build.log
           exit $result
@@ -36,12 +35,18 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: iOS-Experience-build-diagnostics
+          name: Android-apps-build-diagnostics
           path: build.log
           if-no-files-found: ignore
-      - name: Upload APK
+      - name: Upload iOS Experience launcher APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: iOS-Experience-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+      - name: Upload Sonic Music v40 APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sonic-Music-v40-debug
+          path: music/build/outputs/apk/debug/music-debug.apk
