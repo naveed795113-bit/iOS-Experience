@@ -362,7 +362,10 @@ class MainActivity : Activity() {
     }
 
     private fun favorites(): Set<String> = prefs.getStringSet("favorites", emptySet())?.toSet() ?: emptySet()
-    private fun isFavoriteCurrent(): Boolean {\n        val uri = queue.getOrNull(index)?.uri ?: return false\n        return uri in favorites()\n    }
+    private fun isFavoriteCurrent(): Boolean {
+        val uri = queue.getOrNull(index)?.uri ?: return false
+        return uri in favorites()
+    }
     private fun toggleFavorite() {
         if (index !in queue.indices) return
         val set = favorites().toMutableSet()
