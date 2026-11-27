@@ -23,7 +23,24 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Build both Android apps
+      - name: Prepare Sonic Music release signing
+        id: release-signing
+        env:
+          SONIC_KEYSTORE_BASE64: ${{ secrets.SONIC_KEYSTORE_BASE64 }}
+          SONIC_KEYSTORE_PASSWORD: ${{ secrets.SONIC_KEYSTORE_PASSWORD }}
+          SONIC_KEY_ALIAS: ${{ secrets.SONIC_KEY_ALIAS }}
+          SONIC_KEY_PASSWORD: ${{ secrets.SONIC_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "$SONIC_KEYSTORE_BASE64" && -n "$SONIC_KEYSTORE_PASSWORD" && -n "$SONIC_KEY_ALIAS" && -n "$SONIC_KEY_PASSWORD" ]]; then
+            echo "$SONIC_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/sonic-upload.jks"
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Release signing secrets are not configured; release APK will not be produced."
+          fi
+      - name: Build both Android debug apps
         shell: bash
         run: |
           set +e
@@ -31,6 +48,19 @@ jobs:
           result=$?
           tail -n 180 build.log
           exit $result
+      - name: Build signed Sonic Music release APK
+        if: steps.release-signing.outputs.enabled == 'true'
+        env:
+          SONIC_KEYSTORE_PATH: ${{ runner.temp }}/sonic-upload.jks
+          SONIC_KEYSTORE_PASSWORD: ${{ secrets.SONIC_KEYSTORE_PASSWORD }}
+          SONIC_KEY_ALIAS: ${{ secrets.SONIC_KEY_ALIAS }}
+          SONIC_KEY_PASSWORD: ${{ secrets.SONIC_KEY_PASSWORD }}
+        run: gradle :music:assembleRelease --stacktrace --warning-mode all
+      - name: Verify release APK signature
+        if: steps.release-signing.outputs.enabled == 'true'
+        run: |
+          APK="music/build/outputs/apk/release/music-release.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
       - name: Upload build diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -44,9 +74,15 @@ jobs:
         with:
           name: iOS-Experience-debug
           path: app/build/outputs/apk/debug/app-debug.apk
-      - name: Upload Sonic Music v40 APK
+      - name: Upload Sonic Music v40 debug APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: Sonic-Music-v40-debug
           path: music/build/outputs/apk/debug/music-debug.apk
+      - name: Upload signed Sonic Music v40 release APK
+        if: success() && steps.release-signing.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sonic-Music-v40-release-signed
+          path: music/build/outputs/apk/release/music-release.apk
