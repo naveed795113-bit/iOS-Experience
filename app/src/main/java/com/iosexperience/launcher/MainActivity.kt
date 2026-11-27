@@ -123,14 +123,66 @@ class MainActivity : Activity() {
         root = baseColumn()
         setContentView(root)
         val status = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        status.addView(label("●", 12f), LinearLayout.LayoutParams(0, dp(24), 1f))
-        status.addView(label("▮▮▮   ◉", 12f), LinearLayout.LayoutParams(-2, dp(24)))
+        status.addView(label(" ", 12f), LinearLayout.LayoutParams(0, dp(18), 1f))
+        status.addView(label(" ", 12f), LinearLayout.LayoutParams(-2, dp(18)))
         root.addView(status)
 
         date = label("", 15f, true).apply { gravity = Gravity.CENTER }
         root.addView(date, LinearLayout.LayoutParams(-1, dp(30)).apply { topMargin = dp(28) })
-        clock = label("", 62f, true).apply { gravity = Gravity.CENTER }
+        clock = label("", 64f, true).apply {
+            gravity = Gravity.CENTER
+            setShadowLayer(dp(10).toFloat(), 0f, dp(3).toFloat(), 0x55000000)
+        }
         root.addView(clock, LinearLayout.LayoutParams(-1, dp(82)))
+
+        // iOS-inspired compact widget stack
+        val widgets = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, dp(4), 0, dp(4))
+        }
+        fun widgetCard(title: String, headline: String, detail: String, colors: IntArray, weight: Float) {
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(14), dp(10), dp(10), dp(10))
+                background = GradientDrawable(GradientDrawable.Orientation.TL_BR, colors).apply {
+                    cornerRadius = dp(22).toFloat()
+                }
+                elevation = dp(5).toFloat()
+            }
+            card.addView(TextView(this).apply {
+                text = title.uppercase(Locale.getDefault())
+                textSize = 9f
+                setTextColor(0xDDFFFFFF.toInt())
+                setTypeface(typeface, Typeface.BOLD)
+                letterSpacing = 0.08f
+            })
+            card.addView(TextView(this).apply {
+                text = headline
+                textSize = 23f
+                setTextColor(Color.WHITE)
+                setTypeface(typeface, Typeface.BOLD)
+                setPadding(0, dp(3), 0, 0)
+            })
+            card.addView(TextView(this).apply {
+                text = detail
+                textSize = 10f
+                setTextColor(0xEEFFFFFF.toInt())
+                maxLines = 1
+            })
+            widgets.addView(card, LinearLayout.LayoutParams(0, dp(88), weight).apply {
+                setMargins(dp(3), 0, dp(3), 0)
+            })
+        }
+        widgetCard("Today", SimpleDateFormat("d", Locale.getDefault()).format(Date()),
+            SimpleDateFormat("EEEE  •  MMM", Locale.getDefault()).format(Date()),
+            intArrayOf(0xFF345C9C.toInt(), 0xFF1B315B.toInt()), 1f)
+        widgetCard("iOS Experience", "Welcome", "Your Android, redesigned",
+            intArrayOf(0xFF7856A8.toInt(), 0xFF42316F.toInt()), 1.35f)
+        root.addView(widgets, LinearLayout.LayoutParams(-1, dp(96)).apply {
+            topMargin = dp(7)
+            bottomMargin = dp(4)
+        })
 
         search = EditText(this).apply {
             hint = "Search apps"
@@ -140,7 +192,8 @@ class MainActivity : Activity() {
             setSingleLine(true)
             imeOptions = EditorInfo.IME_ACTION_SEARCH
             setPadding(dp(18), 0, dp(18), 0)
-            background = shape(panel, 26)
+            background = shape(if (darkMode) 0x55FFFFFF else 0xCCFFFFFF.toInt(), 28)
+            elevation = dp(3).toFloat()
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -183,7 +236,8 @@ class MainActivity : Activity() {
         val dock = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            background = shape(panel, 28)
+            background = shape(if (darkMode) 0x66FFFFFF else 0xDFFFFFFF.toInt(), 30)
+            elevation = dp(10).toFloat()
             setPadding(dp(8), dp(8), dp(8), dp(8))
         }
         root.addView(dock, LinearLayout.LayoutParams(-1, dp(76)).apply { topMargin = dp(5) })
@@ -214,6 +268,10 @@ class MainActivity : Activity() {
         val icon = ImageView(this).apply {
             if (app != null) setImageDrawable(app.loadIcon(pm)) else setImageResource(fallback)
             scaleType = ImageView.ScaleType.FIT_CENTER
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(0x44FFFFFF, 0x22FFFFFF)).apply { cornerRadius = dp(15).toFloat() }
+            setPadding(dp(3), dp(3), dp(3), dp(3))
+            elevation = dp(2).toFloat()
         }
         item.addView(icon, LinearLayout.LayoutParams(dp(42), dp(42)))
         dock.addView(item, LinearLayout.LayoutParams(0, -1, 1f))
@@ -237,6 +295,9 @@ class MainActivity : Activity() {
         val start = if (query.isEmpty() && page == 1) pageSize else 0
         val pageItems = if (query.isNotEmpty()) shown else shown.drop(start).take(pageSize)
         grid.numColumns = columns
+        grid.animate().cancel()
+        grid.alpha = 0.72f
+        grid.animate().alpha(1f).setDuration(180).start()
         grid.adapter = object : BaseAdapter() {
             override fun getCount() = pageItems.size
             override fun getItem(position: Int) = pageItems[position]
@@ -251,11 +312,13 @@ class MainActivity : Activity() {
                 val icon = ImageView(this@MainActivity).apply {
                     setImageDrawable(info.loadIcon(pm))
                     scaleType = ImageView.ScaleType.FIT_CENTER
-                    background = shape(0x22FFFFFF, 17)
-                    setPadding(dp(5), dp(5), dp(5), dp(5))
+                    background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                        intArrayOf(0x55FFFFFF, 0x22FFFFFF)).apply { cornerRadius = dp(17).toFloat() }
+                    elevation = dp(3).toFloat()
+                    setPadding(dp(4), dp(4), dp(4), dp(4))
                 }
-                cell.addView(icon, LinearLayout.LayoutParams(dp(56), dp(56)))
-                cell.addView(label(info.loadLabel(pm).toString(), 10.5f).apply {
+                cell.addView(icon, LinearLayout.LayoutParams(dp(60), dp(60)))
+                cell.addView(label(info.loadLabel(pm).toString(), 11f, true).apply {
                     gravity = Gravity.CENTER
                     maxLines = 1
                     ellipsize = android.text.TextUtils.TruncateAt.END
