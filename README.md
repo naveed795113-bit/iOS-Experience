@@ -26,3 +26,8 @@ This is a third-party Android launcher. It can replace the home screen, app grid
 ## Independence
 
 iOS Experience is an independent project inspired by iOS visual patterns. It is not affiliated with or endorsed by Apple.
+
+
+## Sonic Music — Version 40.0
+
+The repository also contains a separate Android music app module in `music/`. It provides an Apple Music-inspired interface, local audio playback, favorites, and YouTube search via the official YouTube app/site. Build it with `gradle :music:assembleDebug`. YouTube streaming extraction and Premium-only capabilities are not implemented.
