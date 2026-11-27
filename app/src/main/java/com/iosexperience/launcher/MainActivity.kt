@@ -125,7 +125,7 @@ class MainActivity : Activity() {
             setHintTextColor(if (darkMode) 0xCCFFFFFF.toInt() else 0xFF52617A.toInt())
             setTextColor(fg)
             textSize = 15f
-            singleLine = true
+            setSingleLine(true)
             imeOptions = EditorInfo.IME_ACTION_SEARCH
             setPadding(dp(18), 0, dp(18), 0)
             background = shape(panel, 26)
