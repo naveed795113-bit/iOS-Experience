@@ -1,6 +1,7 @@
 package com.iosexperience.launcher
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.app.WallpaperManager
 import android.content.Intent
 import android.content.pm.ResolveInfo
@@ -49,6 +50,16 @@ class MainActivity : Activity() {
     private var query = ""
     private var columns = 4
     private var darkMode = true
+    private var wallpaperIndex = 0
+    private val wallpaperPalettes = listOf(
+        intArrayOf(0xFF182848.toInt(), 0xFF4B6CB7.toInt(), 0xFF182848.toInt()),
+        intArrayOf(0xFF0F2027.toInt(), 0xFF2C5364.toInt(), 0xFF0F2027.toInt()),
+        intArrayOf(0xFF42275A.toInt(), 0xFF734B6D.toInt(), 0xFF42275A.toInt()),
+        intArrayOf(0xFF134E5E.toInt(), 0xFF71B280.toInt(), 0xFF134E5E.toInt()),
+        intArrayOf(0xFF3A1C71.toInt(), 0xFFD76D77.toInt(), 0xFFFFAF7B.toInt()),
+        intArrayOf(0xFF232526.toInt(), 0xFF414345.toInt(), 0xFF141E30.toInt())
+    )
+    private val wallpaperNames = listOf("Blue Depth", "Ocean", "Violet", "Emerald", "Sunset", "Midnight")
     private var startX = 0f
     private var startY = 0f
     private val bg: Int get() = if (darkMode) Color.rgb(27, 37, 67) else Color.rgb(225, 233, 249)
@@ -68,6 +79,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         columns = prefs.getInt("columns", 4).coerceIn(3, 5)
         darkMode = prefs.getBoolean("dark", true)
+        wallpaperIndex = prefs.getInt("wallpaper", 0).coerceIn(wallpaperPalettes.indices)
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = bg
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
@@ -103,8 +115,8 @@ class MainActivity : Activity() {
         orientation = LinearLayout.VERTICAL
         setPadding(dp(20), dp(42), dp(20), dp(14))
         background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-            if (darkMode) intArrayOf(0xFF253B67.toInt(), 0xFF555B91.toInt(), 0xFF1B294B.toInt())
-            else intArrayOf(0xFFB6C9ED.toInt(), 0xFFE5DDF5.toInt(), 0xFFAABFE4.toInt()))
+            if (darkMode) wallpaperPalettes[wallpaperIndex]
+            else intArrayOf(0xFFF3F6FC.toInt(), 0xFFDCE6F5.toInt(), 0xFFF8F3FF.toInt()))
     }
 
     private fun renderHome() {
@@ -181,7 +193,7 @@ class MainActivity : Activity() {
         addDock(dock, "Camera", android.R.drawable.ic_menu_camera)
 
         val bottom = LinearLayout(this).apply { gravity = Gravity.CENTER; orientation = LinearLayout.HORIZONTAL }
-        bottom.addView(actionText("Wallpaper") { chooseWallpaper() })
+        bottom.addView(actionText("Wallpapers") { openWallpaperGallery() })
         bottom.addView(actionText("Library") { openLibrary() })
         bottom.addView(actionText("Settings") { openSettings() })
         root.addView(bottom, LinearLayout.LayoutParams(-1, dp(40)))
@@ -195,7 +207,9 @@ class MainActivity : Activity() {
     }
 
     private fun addDock(dock: LinearLayout, name: String, fallback: Int) {
-        val app = apps.firstOrNull { it.loadLabel(pm).toString().contains(name, true) }
+        val savedPackage = prefs.getString("dock_$name", null)
+        val app = apps.firstOrNull { it.activityInfo.packageName == savedPackage }
+            ?: apps.firstOrNull { it.loadLabel(pm).toString().contains(name, true) }
         val item = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
         val icon = ImageView(this).apply {
             if (app != null) setImageDrawable(app.loadIcon(pm)) else setImageResource(fallback)
@@ -203,10 +217,8 @@ class MainActivity : Activity() {
         }
         item.addView(icon, LinearLayout.LayoutParams(dp(42), dp(42)))
         dock.addView(item, LinearLayout.LayoutParams(0, -1, 1f))
-        item.setOnClickListener {
-            val target = app ?: apps.firstOrNull { it.loadLabel(pm).toString().contains(name, true) }
-            launch(target)
-        }
+        item.setOnClickListener { launch(app) }
+        item.setOnLongClickListener { chooseDockApp(name); true }
     }
 
     private fun loadApps() {
@@ -359,11 +371,19 @@ class MainActivity : Activity() {
                 renderHome()
             }
         })
-        content.addView(label("Change wallpaper", 15f).apply {
+        content.addView(label("Wallpaper gallery", 15f).apply {
             background = shape(panel, 16)
             setPadding(dp(14), dp(14), dp(14), dp(14))
-            setOnClickListener { chooseWallpaper() }
+            setOnClickListener { openWallpaperGallery() }
         }, LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(12) })
+        content.addView(label("Customise dock apps", 15f, true).apply { setPadding(0, dp(22), 0, dp(8)) })
+        listOf("Phone", "Messages", "Chrome", "Camera").forEach { slot ->
+            content.addView(label("$slot  ·  Change app", 14f).apply {
+                background = shape(panel, 14)
+                setPadding(dp(14), dp(12), dp(14), dp(12))
+                setOnClickListener { chooseDockApp(slot) }
+            }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(6) })
+        }
         content.addView(label("Set as default Home app", 15f).apply {
             background = shape(panel, 16)
             setPadding(dp(14), dp(14), dp(14), dp(14))
@@ -394,8 +414,59 @@ class MainActivity : Activity() {
         setContentView(container)
     }
 
-    private fun chooseWallpaper() {
-        try { startActivity(Intent(Intent.ACTION_SET_WALLPAPER)) }
-        catch (_: Exception) { Toast.makeText(this, "Wallpaper picker is unavailable", Toast.LENGTH_SHORT).show() }
+    private fun openWallpaperGallery() {
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(14), dp(18), dp(18))
+            setBackgroundColor(bg)
+        }
+        content.addView(label("Choose a home screen wallpaper", 20f, true),
+            LinearLayout.LayoutParams(-1, dp(54)))
+        wallpaperNames.forEachIndexed { index, name ->
+            val preview = TextView(this).apply {
+                text = if (wallpaperIndex == index) "$name   ✓" else name
+                textSize = 16f
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(18), 0, dp(18), 0)
+                background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                    wallpaperPalettes[index]).apply { cornerRadius = dp(18).toFloat() }
+                setOnClickListener {
+                    wallpaperIndex = index
+                    prefs.edit().putInt("wallpaper", index).apply()
+                    renderHome()
+                    Toast.makeText(this@MainActivity, "$name wallpaper applied", Toast.LENGTH_SHORT).show()
+                }
+            }
+            content.addView(preview, LinearLayout.LayoutParams(-1, dp(66)).apply {
+                bottomMargin = dp(10)
+            })
+        }
+        content.addView(label("More wallpapers from Android", 14f).apply {
+            background = shape(panel, 16)
+            setPadding(dp(16), dp(14), dp(16), dp(14))
+            setOnClickListener {
+                try { startActivity(Intent(Intent.ACTION_SET_WALLPAPER)) }
+                catch (_: Exception) { Toast.makeText(this@MainActivity, "Wallpaper picker unavailable", Toast.LENGTH_SHORT).show() }
+            }
+        })
+        showPanel("Wallpapers", content)
+    }
+
+    private fun chooseDockApp(slot: String) {
+        if (apps.isEmpty()) return
+        val labels = apps.map { it.loadLabel(pm).toString() }.toTypedArray()
+        val packages = apps.map { it.activityInfo.packageName }
+        val selected = prefs.getString("dock_$slot", null)
+        val checked = packages.indexOf(selected)
+        AlertDialog.Builder(this)
+            .setTitle("Choose $slot dock app")
+            .setSingleChoiceItems(labels, checked) { dialog, which ->
+                prefs.edit().putString("dock_$slot", packages[which]).apply()
+                dialog.dismiss()
+                renderHome()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 }
