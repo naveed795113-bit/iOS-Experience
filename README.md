@@ -1,35 +1,28 @@
 # iOS Experience
 
-An iPhone-inspired Android launcher focused on a clean home screen, familiar icon styling, customizable wallpapers, and smooth everyday navigation.
+An iPhone-inspired Android launcher for Android 10+ devices, with the OnePlus 9 as the initial device-testing target.
 
-## Planned features
+## Implemented in the current launcher
 
-- iPhone-inspired home screen layout
-- Rounded app icons and customizable icon arrangement
-- Wallpaper gallery and wallpaper picker
-- Four-icon dock
-- App drawer / App Library-style organization
-- Home screen search
-- Clock and other supported home-screen widgets
-- Smooth page and interaction animations
-- Launcher settings and personalization
+- iPhone-inspired home screen with live clock and date
+- Installed-app grid with app search and two swipeable pages
+- Four-slot bottom dock with long-press app assignment
+- App Library with app categories and search
+- Built-in wallpaper gallery with six selectable gradient wallpapers
+- Android system wallpaper picker shortcut
+- 3, 4, or 5-column home-screen grid
+- Dark and light appearance modes
+- Long-press app shortcuts to Android app information
+- Persistent wallpaper, appearance, grid, and dock preferences
 
-## Platform
+## Build
 
-- Android
-- Initial device testing target: OnePlus 9
-- Target compatibility: Android 10 and newer, subject to device testing
+The project uses Android Gradle Plugin 8.7.3, Kotlin 2.0.21, and Java 17. GitHub Actions builds a debug APK on pushes to `main` and manual workflow runs.
 
-## Project status
+## Platform limitations
 
-🚧 Under development. Features listed above are planned and are not necessarily implemented yet.
+This is a third-party Android launcher. It can replace the home screen, app grid, dock, and supported launcher surfaces. It cannot fully replace Android's lock screen, notification shade, or system Control Center. Native iOS widgets and Apple's proprietary icon assets are not included.
 
-## Important notes
+## Independence
 
-iOS Experience is an independent Android launcher inspired by the visual design of iOS. It is not affiliated with or endorsed by Apple.
-
-A third-party launcher can customize the Android home screen, app icons, dock, app drawer, and supported widgets. Android system surfaces such as the lock screen, notification shade, and system Control Center are subject to Android permissions and device-manufacturer restrictions and cannot be fully replaced by a normal launcher.
-
-## Development
-
-Android application source code, build instructions, and installation guidance will be added as development progresses.
+iOS Experience is an independent project inspired by iOS visual patterns. It is not affiliated with or endorsed by Apple.
