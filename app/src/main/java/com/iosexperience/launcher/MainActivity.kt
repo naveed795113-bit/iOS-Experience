@@ -183,12 +183,9 @@ class MainActivity : Activity() {
 
     private fun openWallpaperPicker() {
         try {
-            startActivity(Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).apply {
-                putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT, android.content.ComponentName(this@MainActivity, MainActivity::class.java))
-            })
+            startActivity(Intent(Intent.ACTION_SET_WALLPAPER))
         } catch (_: Exception) {
-            try { startActivity(Intent(Intent.ACTION_SET_WALLPAPER)) }
-            catch (_: Exception) { Toast.makeText(this, "Wallpaper settings are unavailable", Toast.LENGTH_SHORT).show() }
+            Toast.makeText(this, "Wallpaper settings are unavailable", Toast.LENGTH_SHORT).show()
         }
     }
 }
