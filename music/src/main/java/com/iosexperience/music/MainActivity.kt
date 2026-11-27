@@ -27,14 +27,6 @@ class MainActivity : Activity() {
     private var playing = false
     private val prefs by lazy { getSharedPreferences("sonic_music", MODE_PRIVATE) }
     private val favorites get() = prefs.getStringSet("favorites", emptySet())!!.toMutableSet()
-    private val picker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            try {
-                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            } catch (_: Exception) {}
-            playLocal(uri, uri.lastPathSegment?.substringAfterLast('/') ?: "Local audio")
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,7 +98,7 @@ class MainActivity : Activity() {
         hero("A world of music", "Find songs on YouTube or play audio stored on your phone.")
         action("Search YouTube", "Discover official music videos and tracks") { showSearch() }
         action("Play music on this device", "Choose MP3, AAC, FLAC and other audio files") {
-            picker.launch(arrayOf("audio/*"))
+            startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply { addCategory(Intent.CATEGORY_OPENABLE); type = "audio/*" }, 401)
         }
         section("Quick picks")
         listOf("Chill mix", "Today's energy", "Focus flow", "Late night").forEachIndexed { i, name ->
@@ -153,7 +145,7 @@ class MainActivity : Activity() {
         content.removeAllViews()
         section("Your library")
         action("Choose audio from device", "Play music files stored on your phone") {
-            picker.launch(arrayOf("audio/*"))
+            startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply { addCategory(Intent.CATEGORY_OPENABLE); type = "audio/*" }, 401)
         }
         section("Favorites")
         val saved = favorites
@@ -254,6 +246,15 @@ class MainActivity : Activity() {
             setColor(color)
             cornerRadius = radius.toFloat()
         }
+
+    @Deprecated("Deprecated in Android")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 401 && resultCode == RESULT_OK) {
+            val uri = data?.data ?: return
+            playLocal(uri, uri.lastPathSegment?.substringAfterLast('/') ?: "Local audio")
+        }
+    }
 
     override fun onDestroy() {
         player?.release()
