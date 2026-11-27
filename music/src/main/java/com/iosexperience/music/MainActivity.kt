@@ -11,7 +11,6 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
-import androidx.activity.result.contract.ActivityResultContracts
 
 class MainActivity : Activity() {
     private val bg = Color.rgb(12, 12, 16)
